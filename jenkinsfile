@@ -9,6 +9,23 @@ pipeline {
         }
     }
 
+    stage('SAST SonarQube') {
+         steps {
+         withMaven(maven: 'Maven') {
+         sh '''mvn clean verify sonar:sonar \\
+                 -Dsonar.projectKey=MyFirstProject \\
+                 -Dsonar.host.url=http://3.101.76.18:9000 \\
+                 -Dsonar.login=sqp_50f29b62e01efbbfcf108139b4c45a4c8661892c'''
+    }
+         }
+    }
+    stage('Quality Gate') {
+        steps {
+
+                waitForQualityGate abortPipeline: true, credentialsId: 'sonar'
+        }
+
+    }
     
     stage('Build') {
         steps {
@@ -22,13 +39,13 @@ pipeline {
         steps {
             deploy adapters: [tomcat8(credentialsId: 'tomcat', 
             path: '', 
-            url: 'http://54.153.8.242:8080/')], 
+            url: 'http://54.67.30.95:8080/')], 
             contextPath: null, 
             war: '**/*.war'
             }
     }
     } 
-      post {
+     /* post {
 
      success {
          
@@ -36,7 +53,13 @@ pipeline {
     
     
     }
-          }
+          }*/
+
+     post {
+        always {
+            emailext body: 'A Test EMail', recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']], subject: 'Test'
+        }
+    }
 
         
 
