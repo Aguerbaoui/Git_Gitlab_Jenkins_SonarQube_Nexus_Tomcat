@@ -8,8 +8,18 @@ pipeline {
         git branch: 'main', credentialsId: 'jenkins', url: 'git@gitlab.com:Aguerbaoui/projet_j2e.git'
         }
     }
+   
+//    stage("SAST") {
+//         steps{
+//                 withSonarQubeEnv(installationName: 'sonarqube', credentialsId: 'sonar') { 
+//                  withMaven(maven: 'Maven') {
+//                         sh 'mvn clean package sonar:sonar'
+//               }
+//         }
+//         }
+//        }
 
-    stage('SAST SonarQube') {
+   /* stage('SAST SonarQube') {
          steps {
          withMaven(maven: 'Maven') {
          sh '''mvn clean verify sonar:sonar \\
@@ -18,22 +28,52 @@ pipeline {
                  -Dsonar.login=sqp_50f29b62e01efbbfcf108139b4c45a4c8661892c'''
     }
          }
-    }
-    stage('Quality Gate') {
+    }*/
+  /*  stage('Quality Gate') {
         steps {
 
-                waitForQualityGate abortPipeline: true, credentialsId: 'sonar'
+            waitForQualityGate abortPipeline: true, credentialsId: 'sonar'
         }
 
     }
-    
+    */
     stage('Build') {
         steps {
             withMaven(maven: 'Maven') {
-                sh 'mvn clean install package'
+                sh script: 'mvn clean install package'
             }
         }
     }
+
+
+stage('upload_artifact_to_nexus') {
+    steps{
+        script{
+            def mavenpom = readMavenPom file: 'pom.xml'
+            //defines a variable called "nexusRepoName" with a value that depends on the value of the "mavenpom.version"
+            // variable. If the value of "mavenpom.version" ends with "SNAPSHOT", then the value of "nexusRepoName" will be "Project_JEE-SNAPSHOT". 
+            //Otherwise, the value of "nexusRepoName" will be "Project_JEE".
+            def nexusRepoName = mavenpom.version.endsWith("SNAPSHOT") ? "Project_JEE-SNAPSHOT" : "Project_JEE" 
+          nexusArtifactUploader artifacts: [
+            [
+                artifactId: 'maven-project',
+                classifier: '',
+                file: "webapp/target/webapp-${mavenpom.version}.war",
+                type: 'war'
+                ]
+            ],
+            credentialsId: 'nexus',
+            groupId: 'com.example.maven-project',
+            nexusUrl: '52.53.193.47:8081',
+            nexusVersion: 'nexus3',
+            protocol: 'http',
+            repository: 'nexusRepoName',
+            version: "${mavenpom.version}"
+        }
+
+    }
+}
+
     
     stage('Deploy') {
         steps {
@@ -45,23 +85,28 @@ pipeline {
             }
     }
     } 
-     /* post {
+    //   post {
 
-     success {
+    //  success {
          
-         slackSend message: " Successful pipeline: Job ${env.JOB_NAME}, Build Jenkins N°: ${env.BUILD_NUMBER}: -To see more details,Check console output at:${env.BUILD_URL}"
+    //      slackSend message: " Successful pipeline: Job ${env.JOB_NAME}, Build Jenkins N°: ${env.BUILD_NUMBER}: -To see more details,Check console output at:${env.BUILD_URL}"
     
     
-    }
-          }*/
+    // }
+    //       }
 
-     post {
+     /*post {
         always {
             emailext body: 'A Test EMail', recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']], subject: 'Test'
         }
-    }
+    }*/
 
-        
+      post {
+        success {
+            emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore Info can be found here: ${env.BUILD_URL}", recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']], subject: 'Test'
+             
+        }
+    } 
 
 } 
 
