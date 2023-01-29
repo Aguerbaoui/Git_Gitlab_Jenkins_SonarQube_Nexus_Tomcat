@@ -102,7 +102,7 @@ stage('upload_artifact_to_nexus') {
             ],
             credentialsId: 'nexus',
             groupId: 'com.example.maven-project',
-            nexusUrl: '52.53.193.47:8081',
+            nexusUrl: '54.219.185.30:8081',
             nexusVersion: 'nexus3',
             protocol: 'http',
             repository: 'nexusRepoName',
